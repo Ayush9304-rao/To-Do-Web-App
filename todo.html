@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillCraft Technology — To-do</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d14;
+    --surface:#12151f;
+    --surface-2:#171b28;
+    --border:#232838;
+    --border-soft:#1b1f2c;
+    --teal:#22d3af;
+    --teal-dim:#0f6e56;
+    --blue:#3b82f6;
+    --amber:#f5b942;
+    --red:#e2534a;
+    --text:#f2f3f7;
+    --text-mute:#8b93a8;
+    --text-faint:#565e73;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:40px 20px 60px;
+    position:relative;overflow-x:hidden;
+  }
+  .bg-grid{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(var(--border-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 70% 50% at 50% 0%, black 30%, transparent 85%);
+    opacity:0.5;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  .app{position:relative;z-index:1;width:100%;max-width:600px;margin:0 auto;}
+
+  .eyebrow{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--teal);
+    margin-bottom:22px;
+  }
+  .eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px 1px rgba(34,211,175,0.6);}
+
+  h1{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;
+    text-align:center;margin-bottom:6px;
+  }
+  .sub{text-align:center;color:var(--text-mute);font-size:14px;margin-bottom:28px;}
+
+  /* lists row */
+  .lists-row{
+    display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:20px;
+    scrollbar-width:none;
+  }
+  .lists-row::-webkit-scrollbar{display:none;}
+  .list-chip{
+    flex-shrink:0;
+    display:flex;align-items:center;gap:6px;
+    padding:9px 16px;border-radius:20px;
+    border:1px solid var(--border);background:var(--surface);
+    font-size:13px;font-weight:500;color:var(--text-mute);
+    cursor:pointer;white-space:nowrap;
+    transition:border-color .2s ease, color .2s ease, background .2s ease;
+  }
+  .list-chip .count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);}
+  .list-chip.active{border-color:var(--teal);color:var(--text);background:rgba(34,211,175,0.08);}
+  .list-chip.active .count{color:var(--teal);}
+  .list-chip.add-list{color:var(--teal);border-style:dashed;}
+  .list-chip:hover{border-color:var(--text-faint);}
+
+  /* add task panel */
+  .panel{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:20px;margin-bottom:20px;
+  }
+  .add-row{display:flex;gap:10px;margin-bottom:12px;}
+  input[type="text"], input[type="date"], input[type="time"]{
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-family:'Inter',sans-serif;font-size:14px;
+    padding:11px 12px;outline:none;
+    transition:border-color .2s ease;
+  }
+  input[type="text"]:focus, input[type="date"]:focus, input[type="time"]:focus{border-color:var(--teal);}
+  input[type="text"]::placeholder{color:var(--text-faint);}
+  #taskInput{flex:1;min-width:0;}
+  input[type="date"], input[type="time"]{color-scheme:dark;font-size:13px;}
+
+  .datetime-row{display:flex;gap:10px;}
+  .datetime-row input{flex:1;}
+
+  .add-btn{
+    padding:11px 20px;border-radius:8px;border:none;
+    background:var(--teal);color:#04201a;font-weight:600;font-size:14px;
+    cursor:pointer;white-space:nowrap;
+    transition:background .2s ease, transform .15s ease;
+  }
+  .add-btn:hover{background:#3ee2bc;}
+  .add-btn:active{transform:scale(0.97);}
+
+  /* filter tabs */
+  .filters{display:flex;gap:6px;margin-bottom:16px;}
+  .filter-btn{
+    padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;
+    color:var(--text-mute);cursor:pointer;
+    border:1px solid transparent;
+    transition:color .2s ease, background .2s ease;
+  }
+  .filter-btn.active{background:var(--surface-2);color:var(--text);border-color:var(--border);}
+
+  /* task list */
+  .task-list{display:flex;flex-direction:column;gap:10px;}
+  .task-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:16px;
+    transition:border-color .2s ease, opacity .2s ease;
+    animation:taskIn .25s ease;
+  }
+  @keyframes taskIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+  .task-card.done{opacity:0.55;}
+  .task-main{display:flex;align-items:flex-start;gap:12px;}
+  .check{
+    flex-shrink:0;width:22px;height:22px;border-radius:50%;
+    border:1.5px solid var(--text-faint);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;margin-top:1px;
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .check svg{width:12px;height:12px;opacity:0;transition:opacity .15s ease;color:#04201a;}
+  .task-card.done .check{background:var(--teal);border-color:var(--teal);}
+  .task-card.done .check svg{opacity:1;}
+
+  .task-body{flex:1;min-width:0;}
+  .task-title{
+    font-size:15px;font-weight:500;word-break:break-word;
+  }
+  .task-card.done .task-title{text-decoration:line-through;color:var(--text-mute);}
+  .task-meta{
+    display:flex;align-items:center;gap:6px;margin-top:6px;
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-mute);
+  }
+  .task-meta.overdue{color:var(--red);}
+  .task-meta svg{width:12px;height:12px;flex-shrink:0;}
+  .task-list-tag{
+    font-size:10px;padding:2px 8px;border-radius:10px;
+    background:var(--surface-2);color:var(--text-faint);
+    text-transform:uppercase;letter-spacing:0.04em;
+  }
+
+  .task-actions{display:flex;gap:6px;flex-shrink:0;}
+  .icon-btn{
+    width:30px;height:30px;border-radius:7px;border:1px solid var(--border);
+    background:var(--bg);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;color:var(--text-mute);
+    transition:border-color .2s ease, color .2s ease;
+  }
+  .icon-btn:hover{border-color:var(--blue);color:var(--text);}
+  .icon-btn.delete:hover{border-color:var(--red);color:var(--red);}
+  .icon-btn svg{width:14px;height:14px;}
+
+  /* edit mode */
+  .edit-row{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .edit-row .datetime-row{display:flex;gap:8px;}
+  .edit-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+  .edit-actions .btn-sm{
+    padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+  }
+  .edit-actions .save{background:var(--teal);border-color:var(--teal);color:#04201a;}
+
+  .empty-state{
+    text-align:center;padding:50px 20px;color:var(--text-faint);
+  }
+  .empty-state svg{width:40px;height:40px;margin-bottom:14px;opacity:0.6;}
+  .empty-state p{font-size:14px;}
+
+  @media (max-width:480px){
+    .add-row{flex-direction:column;}
+    .datetime-row{flex-direction:column;}
+    .task-actions{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<div class="app">
+  <div class="eyebrow">SkillCraft Technology / to-do</div>
+  <h1>Task board</h1>
+  <p class="sub">Add tasks, sort them into lists, and set a date & time to stay on track.</p>
+
+  <div class="lists-row" id="listsRow"></div>
+
+  <div class="panel">
+    <div class="add-row">
+      <input type="text" id="taskInput" placeholder="What needs doing?">
+      <button class="add-btn" id="addBtn">Add task</button>
+    </div>
+    <div class="datetime-row">
+      <input type="date" id="dateInput">
+      <input type="time" id="timeInput">
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-btn active" data-filter="all">All</div>
+    <div class="filter-btn" data-filter="active">Active</div>
+    <div class="filter-btn" data-filter="done">Completed</div>
+  </div>
+
+  <div class="task-list" id="taskList"></div>
+</div>
+
+<script>
+  const listsRow = document.getElementById('listsRow');
+  const taskInput = document.getElementById('taskInput');
+  const dateInput = document.getElementById('dateInput');
+  const timeInput = document.getElementById('timeInput');
+  const addBtn = document.getElementById('addBtn');
+  const taskListEl = document.getElementById('taskList');
+  const filterBtns = document.querySelectorAll('.filter-btn');
+
+  let lists = ['Personal', 'Work'];
+  let activeList = 'Personal';
+  let filter = 'all';
+  let editingId = null;
+
+  let tasks = [
+    { id: 1, title: 'Review SkillCraft Task 04 brief', list: 'Work', date: '', time: '', done: false },
+    { id: 2, title: 'Pick up groceries', list: 'Personal', date: '', time: '', done: false }
+  ];
+  let nextId = 3;
+
+  function fmtDateTime(date, time){
+    if(!date) return '';
+    const d = new Date(date + 'T' + (time || '00:00'));
+    const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const timeStr = time ? d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+    return timeStr ? `${dateStr}, ${timeStr}` : dateStr;
+  }
+
+  function isOverdue(task){
+    if(!task.date || task.done) return false;
+    const due = new Date(task.date + 'T' + (task.time || '23:59'));
+    return due < new Date();
+  }
+
+  function clockIcon(){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  }
+
+  function renderLists(){
+    listsRow.innerHTML = '';
+    lists.forEach(name => {
+      const count = tasks.filter(t => t.list === name && !t.done).length;
+      const chip = document.createElement('div');
+      chip.className = 'list-chip' + (name === activeList ? ' active' : '');
+      chip.innerHTML = `${name} <span class="count">${count}</span>`;
+      chip.addEventListener('click', () => { activeList = name; render(); });
+      listsRow.appendChild(chip);
+    });
+    const addChip = document.createElement('div');
+    addChip.className = 'list-chip add-list';
+    addChip.textContent = '+ New list';
+    addChip.addEventListener('click', addList);
+    listsRow.appendChild(addChip);
+  }
+
+  function addList(){
+    const name = prompt('Name this list:');
+    if(!name) return;
+    const trimmed = name.trim();
+    if(!trimmed || lists.includes(trimmed)) return;
+    lists.push(trimmed);
+    activeList = trimmed;
+    render();
+  }
+
+  function renderTasks(){
+    const visible = tasks
+      .filter(t => t.list === activeList)
+      .filter(t => filter === 'all' ? true : filter === 'active' ? !t.done : t.done)
+      .sort((a,b) => {
+        if(a.done !== b.done) return a.done ? 1 : -1;
+        if(!a.date && !b.date) return 0;
+        if(!a.date) return 1;
+        if(!b.date) return -1;
+        return (a.date + a.time).localeCompare(b.date + b.time);
+      });
+
+    taskListEl.innerHTML = '';
+
+    if(visible.length === 0){
+      taskListEl.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3 8-8M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+          <p>Nothing here yet. Add a task above.</p>
+        </div>`;
+      return;
+    }
+
+    visible.forEach(task => {
+      const card = document.createElement('div');
+      card.className = 'task-card' + (task.done ? ' done' : '');
+
+      if(editingId === task.id){
+        card.innerHTML = `
+          <div class="edit-row">
+            <input type="text" class="edit-title" value="${escapeHtml(task.title)}">
+            <div class="datetime-row">
+              <input type="date" class="edit-date" value="${task.date}">
+              <input type="time" class="edit-time" value="${task.time}">
+            </div>
+            <div class="edit-actions">
+              <div class="btn-sm cancel-edit">Cancel</div>
+              <div class="btn-sm save save-edit">Save</div>
+            </div>
+          </div>`;
+        card.querySelector('.cancel-edit').addEventListener('click', () => { editingId = null; render(); });
+        card.querySelector('.save-edit').addEventListener('click', () => {
+          const newTitle = card.querySelector('.edit-title').value.trim();
+          if(!newTitle) return;
+          task.title = newTitle;
+          task.date = card.querySelector('.edit-date').value;
+          task.time = card.querySelector('.edit-time').value;
+          editingId = null;
+          render();
+        });
+        taskListEl.appendChild(card);
+        return;
+      }
+
+      const overdue = isOverdue(task);
+      const metaHtml = task.date
+        ? `<div class="task-meta${overdue ? ' overdue' : ''}">${clockIcon()} ${fmtDateTime(task.date, task.time)}${overdue ? ' · overdue' : ''}</div>`
+        : '';
+
+      card.innerHTML = `
+        <div class="task-main">
+          <div class="check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5 11-11"/></svg>
+          </div>
+          <div class="task-body">
+            <div class="task-title">${escapeHtml(task.title)}</div>
+            ${metaHtml}
+          </div>
+          <div class="task-actions">
+            <div class="icon-btn edit-task" aria-label="Edit task">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+            </div>
+            <div class="icon-btn delete delete-task" aria-label="Delete task">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+            </div>
+          </div>
+        </div>`;
+
+      card.querySelector('.check').addEventListener('click', () => { task.done = !task.done; render(); });
+      card.querySelector('.edit-task').addEventListener('click', () => { editingId = task.id; render(); });
+      card.querySelector('.delete-task').addEventListener('click', () => {
+        tasks = tasks.filter(t => t.id !== task.id);
+        render();
+      });
+
+      taskListEl.appendChild(card);
+    });
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function render(){
+    renderLists();
+    renderTasks();
+  }
+
+  function addTask(){
+    const title = taskInput.value.trim();
+    if(!title) return;
+    tasks.push({
+      id: nextId++,
+      title,
+      list: activeList,
+      date: dateInput.value,
+      time: timeInput.value,
+      done: false
+    });
+    taskInput.value = '';
+    dateInput.value = '';
+    timeInput.value = '';
+    render();
+  }
+
+  addBtn.addEventListener('click', addTask);
+  taskInput.addEventListener('keydown', e => { if(e.key === 'Enter') addTask(); });
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      renderTasks();
+    });
+  });
+
+  render();
+</script>
+</body>
+</html>
